@@ -100,6 +100,9 @@
         --ss-item-hover: #f2f2f2;
         --ss-item-active: #e6f0ff;
       }
+      /* hide scrollbars but keep scrollable content */
+      .ss-panel::-webkit-scrollbar{width:0;height:0}
+      .ss-panel{scrollbar-width:none;-ms-overflow-style:none}
       @media (prefers-color-scheme: dark){
         :root{
           --ss-bg: #0b1220;
@@ -114,28 +117,25 @@
 
       /* root is just a container */
       .ss-root{position:fixed;left:0;top:0;height:100vh;z-index:2147483647;pointer-events:none}
-      /* visible edge handle */
-      .ss-edge{position:fixed;left:0;top:0;height:100vh;width:10px;background:linear-gradient(90deg,var(--ss-edge-start),var(--ss-edge-end));cursor:pointer;pointer-events:auto;border-top-right-radius:4px;border-bottom-right-radius:4px}
-      .ss-edge:focus{outline:2px solid rgba(25,118,210,0.6)}
-      /* panel sits above page content, hidden by translateX */
-      .ss-panel{position:fixed;left:0;top:0;transform:translateX(-100%);width:320px;max-width:40vw;height:100vh;background:var(--ss-bg);color:var(--ss-text);box-shadow:var(--ss-panel-shadow);overflow:auto;pointer-events:auto}
+      /* merged panel acts as both visible edge and full panel */
+      :root{--ss-edge-width:10px}
+      .ss-panel{position:fixed;left:0;top:0;transform:translateX(calc(-100% + var(--ss-edge-width)));width:320px;max-width:40vw;height:100vh;background:var(--ss-bg);color:var(--ss-text);box-shadow:var(--ss-panel-shadow);overflow-y:auto;overflow-x:hidden;pointer-events:auto;box-sizing:border-box;border-top-right-radius:6px;border-bottom-right-radius:6px}
+      .ss-panel:focus{outline:2px solid rgba(25,118,210,0.6)}
       .ss-root.ss-expanded .ss-panel{transform:translateX(0);transition:transform .18s ease}
-      .ss-root.ss-collapsed .ss-panel{transform:translateX(-100%);transition:transform .18s ease}
-      .ss-list{padding:8px;font-family:Segoe UI, Arial, Helvetica, sans-serif}
+      .ss-root.ss-collapsed .ss-panel{transform:translateX(calc(-100% + var(--ss-edge-width)));transition:transform .18s ease}
+      .ss-list{padding:8px 0 8px 8px;font-family:Segoe UI, Arial, Helvetica, sans-serif}
       .ss-group{margin-bottom:8px}
       .ss-item{display:flex;align-items:center;padding:6px;border-radius:4px;cursor:pointer;color:var(--ss-text)}
       .ss-item:hover{background:var(--ss-item-hover)}
-      .ss-item.active{background:var(--ss-item-active)}
+      .ss-item.active{background:var(--ss-item-active);border-right:10px solid #1976d2;font-weight:600}
       .ss-item img{width:18px;height:18px;margin-right:8px}
     `;
 
-    const edge = document.createElement('div');
-    edge.className = 'ss-edge';
-    edge.tabIndex = 0; // make focusable for keyboard
-    edge.title = 'Sidebar Search';
-
+    // merged panel + edge element
     const panel = document.createElement('div');
     panel.className = 'ss-panel';
+    panel.tabIndex = 0; // make focusable for keyboard
+    panel.title = 'Sidebar Search';
 
     const list = document.createElement('div');
     list.className = 'ss-list';
@@ -177,7 +177,6 @@
 
     panel.appendChild(list);
     root.appendChild(style);
-    root.appendChild(edge);
     root.appendChild(panel);
     document.body.appendChild(root);
 
@@ -186,9 +185,9 @@
     // initial collapsed
     collapse();
     // open on hover, click or focus for better reliability across sites
-    edge.addEventListener('mouseenter', expand);
-    edge.addEventListener('click', () => root.classList.toggle('ss-expanded'));
-    edge.addEventListener('focus', expand);
+    panel.addEventListener('mouseenter', expand);
+    panel.addEventListener('click', () => root.classList.toggle('ss-expanded'));
+    panel.addEventListener('focus', expand);
     // close when leaving panel area
     root.addEventListener('mouseleave', collapse);
     // close on Escape
