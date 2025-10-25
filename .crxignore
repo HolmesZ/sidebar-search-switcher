@@ -1,0 +1,41 @@
+# 通用：忽略开发依赖和本地配置
+node_modules/
+.git/
+.vscode/
+.idea/
+*.log
+.DS_Store
+Thumbs.db
+*.iml
+
+# 忽略测试和覆盖结果
+coverage/
+tests/
+__tests__/
+*.spec.*
+*.test.*
+
+# 忽略包管理和构建中间产物
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.tgz
+dist/.cache/
+.cache/
+
+# 忽略源码（如果你只打包编译产物，请启用）
+# 如果你的扩展直接以源码发布，请删除或注释掉下面几行
+*.ts
+*.tsx
+tsconfig.json
+*.map
+
+# 忽略本地环境配置与文档
+.env
+.env.*
+README.md
+docs/
+
+# 忽略 crxignore 本身以防被误包含
+.crxignore
