@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Sidebar Search",
+  "version": "0.1.0",
+  "description": "在搜索引擎页面左侧显示可展开的搜索引擎边栏，支持自定义引擎与导入/导出配置。",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "action": {
+    "default_title": "Sidebar Search",
+    "default_popup": "src/options/options.html"
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "48": "icons/icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/sidebar.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["data.json"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

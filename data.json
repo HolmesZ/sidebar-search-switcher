@@ -1,0 +1,50 @@
+{
+  "setting": {
+    "showIcon": false,
+    "openInNewTab": false
+  },
+    "listData": [
+    {
+      "name": "开发",
+      "icon": "💻",
+      "items": [
+        {"name":"GitHub", "urlTemplate":"https://github.com/search?q={keyword}&type=repositories"},
+        {"name":"MDN", "urlTemplate":"https://developer.mozilla.org/zh-CN/search?q={keyword}"},
+        {"name":"Stack Overflow", "urlTemplate":"https://stackoverflow.com/search?q={keyword}"},
+        {"name":"掘金", "urlTemplate":"https://juejin.im/search?query={keyword}&type=all"}
+      ]
+    },
+    {
+      "name": "搜索",
+      "icon": "😀",
+      "items": [
+        {"name":"Google", "urlTemplate":"https://www.google.com/search?q={keyword}"},
+        {"name":"Bing", "urlTemplate":"https://www.bing.com/search?q={keyword}"},
+        {"name":"百度", "urlTemplate":"https://www.baidu.com/s?wd={keyword}"},
+        {"name":"DuckDuckGo", "urlTemplate":"https://duckduckgo.com/?q={keyword}"}
+      ]
+    },
+    {
+      "name": "视频",
+      "icon": "🎦",
+      "items": [
+        {"name":"哔哩哔哩", "urlTemplate":"https://search.bilibili.com/all?keyword={keyword}"},
+        {"name":"YouTube", "urlTemplate":"https://www.youtube.com/results?search_query={keyword}"}
+      ]
+    },
+    {
+      "name": "学术",
+      "icon": "🎓",
+      "items": [
+        {"name":"Google Scholar", "urlTemplate":"https://scholar.google.com/scholar?q={keyword}"},
+        {"name":"中国知网", "urlTemplate":"https://kns.cnki.net/kns8s/defaultresult/index?kw={keyword}"},
+        {"name":"万方", "urlTemplate":"https://s.wanfangdata.com.cn/paper?q={keyword}"},
+        {"name":"Semantic Scholar", "urlTemplate":"https://www.semanticscholar.org/search?q={keyword}&sort=relevance"},
+        {"name":"DBLP", "urlTemplate":"https://dblp.org/search?q={keyword}"},
+        {"name":"arXiv", "urlTemplate":"https://arxiv.org/search/?query={keyword}&searchtype=all&source=header"},
+        {"name":"IEEE Xplore", "urlTemplate":"https://ieeexplore.ieee.org/search/searchresult.jsp?newsearch=true&queryText={keyword}"},
+        {"name":"ACM Digital Library", "urlTemplate":"https://dl.acm.org/action/doSearch?AllField={keyword}"}
+      ]
+    }
+  ]
+}
