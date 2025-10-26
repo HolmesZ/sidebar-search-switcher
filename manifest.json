@@ -10,7 +10,7 @@
   ],
   "action": {
     "default_title": "Sidebar Search",
-    "default_popup": "src/options/options.html"
+    "default_popup": "src/popup/popup.html"
   },
   "background": {
     "service_worker": "src/background/service-worker.js"
