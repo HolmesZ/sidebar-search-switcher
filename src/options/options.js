@@ -23,22 +23,33 @@
   btnSave.addEventListener('click', () => {
     try {
       const parsed = JSON.parse(ta.value);
-      chrome.storage.local.set({ data: parsed }, () => alert('Saved'));
+      // save under unified key 'sidebarConfig'
+      chrome.storage.local.set({ sidebarConfig: parsed }, () => alert('Saved'));
     } catch (e) {
       alert('Invalid JSON');
     }
   });
 
-  btnExport.addEventListener('click', () => {
-    chrome.storage.local.get(['data'], res => {
-      const payload = res.data || {};
+  btnExport.addEventListener('click', async () => {
+    // prefer stored sidebarConfig, fallback to legacy data, then to bundled data.json
+    chrome.storage.local.get(['sidebarConfig'], async (res) => {
+      let payload = res.sidebarConfig || res.data;
+      if (!payload) {
+        try {
+          const url = chrome.runtime.getURL('data.json');
+          const r = await fetch(url);
+          payload = await r.json();
+        } catch (e) {
+          payload = {};
+        }
+      }
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
+      const url2 = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = url2;
       a.download = 'sidebar-search-config.json';
       a.click();
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url2);
     });
   });
 
@@ -50,7 +61,7 @@
       try {
         const parsed = JSON.parse(e.target.result);
         ta.value = JSON.stringify(parsed, null, 2);
-        chrome.storage.local.set({ data: parsed }, () => alert('Imported and saved'));
+        chrome.storage.local.set({ sidebarConfig: parsed }, () => alert('Imported and saved'));
       } catch (err) {
         alert('Invalid JSON');
       }
@@ -59,8 +70,9 @@
   });
 
   // load saved or default on open
-  chrome.storage.local.get(['data'], res => {
-    if (res.data) ta.value = JSON.stringify(res.data, null, 2);
+  chrome.storage.local.get(['sidebarConfig'], res => {
+    const payload = res.sidebarConfig || res.data;
+    if (payload) ta.value = JSON.stringify(payload, null, 2);
     else loadDefault();
   });
 })();

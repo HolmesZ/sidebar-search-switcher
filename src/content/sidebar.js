@@ -4,26 +4,38 @@
 
   // Helper: fetch and normalize data.json (support old keys)
   async function loadConfig() {
-    try {
-      const res = await fetch(DATA_URL);
-      const raw = await res.json();
-      const setting = raw.setting || {};
-      const listData = raw.listData || raw.list || [];
-      // normalize groups: items vs list
-      const groups = listData.map(g => ({
-        name: g.name || g.title || '',
-        icon: g.icon || '',
-        items: (g.items || g.list || []).map(it => ({
-          name: it.name || it.title || 'unnamed',
-          urlTemplate: it.urlTemplate || it.engine || it.url || '',
-          icon: it.icon || it.favicon || ''
-        }))
-      }));
-      return { setting, groups };
-    } catch (e) {
-      console.error('Failed to load data.json', e);
-      return { setting: {}, groups: [] };
+    const storage = await new Promise((resolve) => {
+      try {
+        chrome.storage.local.get(['sidebarConfig'], res => resolve(res));
+      } catch (e) {
+        resolve({});
+      }
+    });
+
+    let raw = storage && (storage.sidebarConfig || storage.data);
+    if (!raw) {
+      try {
+        const res = await fetch(DATA_URL);
+        raw = await res.json();
+      } catch (e) {
+        console.error('Failed to load data.json', e);
+        raw = { setting: {}, listData: [] };
+      }
     }
+
+    const setting = raw.setting || {};
+    const listData = raw.listData || raw.list || [];
+    // normalize groups: items vs list
+    const groups = listData.map(g => ({
+      name: g.name || g.title || '',
+      icon: g.icon || '',
+      items: (g.items || g.list || []).map(it => ({
+        name: it.name || it.title || 'unnamed',
+        urlTemplate: it.urlTemplate || it.engine || it.url || '',
+        icon: it.icon || it.favicon || ''
+      }))
+    }));
+    return { setting, groups };
   }
 
   function inferFromTemplate(template) {
