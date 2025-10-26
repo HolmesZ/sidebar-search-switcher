@@ -3,36 +3,238 @@
 
 <head>
   <meta charset="utf-8" />
+  <meta name="color-scheme" content="light dark" />
   <title>Sidebar Search - Options</title>
   <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f5;
+      --text-primary: #333333;
+      --text-secondary: #666666;
+      --border-color: #e0e0e0;
+      --button-bg: #007bff;
+      --button-hover: #0056b3;
+      --button-text: #ffffff;
+      --success-bg: #d4edda;
+      --success-text: #155724;
+      --error-bg: #f8d7da;
+      --error-text: #721c24;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1e1e1e;
+        --bg-secondary: #2d2d2d;
+        --text-primary: #e0e0e0;
+        --text-secondary: #b0b0b0;
+        --border-color: #404040;
+        --button-bg: #0d47a1;
+        --button-hover: #1565c0;
+        --button-text: #ffffff;
+        --success-bg: #1b5e20;
+        --success-text: #a5d6a7;
+        --error-bg: #b71c1c;
+        --error-text: #ef9a9a;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Segoe UI, Arial, Helvetica, sans-serif;
-      padding: 12px
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      padding: 0;
+      margin: 0;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      color: var(--text-primary);
+    }
+
+    .theme-indicator {
+      padding: 4px 12px;
+      background-color: var(--bg-secondary);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+    }
+
+    h2 {
+      color: var(--text-primary);
+      font-size: 18px;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+      align-items: center;
+    }
+
+    button {
+      padding: 10px 16px;
+      background-color: var(--button-bg);
+      color: var(--button-text);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+
+    button:hover {
+      background-color: var(--button-hover);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    input[type="file"] {
+      padding: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      cursor: pointer;
     }
 
     textarea {
       width: 100%;
-      height: 240px
+      height: 400px;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono", "Ubuntu Mono", "Roboto Mono", "Droid Sans Mono", "Source Code Pro", monospace, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      resize: vertical;
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
     }
 
-    button {
-      margin: 6px 4px
+    textarea:focus {
+      outline: none;
+      border-color: var(--button-bg);
+      box-shadow: 0 0 0 3px rgba(13, 71, 161, 0.1);
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .alert.success {
+      background-color: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .alert.error {
+      background-color: var(--error-bg);
+      color: var(--error-text);
+    }
+
+    .alert.show {
+      display: block;
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .info-text {
+      color: var(--text-secondary);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    #file {
+      display: none;
+    }
+
+    .button-save-group {
+      margin-top: 12px;
     }
   </style>
 </head>
 
 <body>
-  <h2>Sidebar Search - Options (Minimal)</h2>
-  <div>
-    <button id="btnLoad">恢复默认配置</button>
-    <button id="btnExport">导出配置</button>
-    <input id="file" type="file" accept="application/json" />
-    <button id="btnImport">导入配置</button>
-  </div>
-  <h3>配置编辑</h3>
-  <textarea id="ta"></textarea>
-  <div>
-    <button id="btnSave">保存配置</button>
+  <div class="container">
+    <header>
+      <h1>Sidebar Search - 选项</h1>
+      <div class="theme-indicator" id="themeIndicator">🌙 暗色模式</div>
+    </header>
+
+    <div id="alert" class="alert"></div>
+
+    <div class="section">
+      <h2>配置管理</h2>
+      <div class="button-group">
+        <button id="btnLoad">↻ 恢复默认配置</button>
+        <button id="btnExport">⬇️ 导出配置</button>
+        <input id="file" type="file" accept="application/json" />
+        <button id="btnImport">⬆️ 导入配置</button>
+      </div>
+      <p class="info-text">✓ 导入和导出配置文件来备份您的设置</p>
+    </div>
+
+    <div class="section">
+      <h2>配置编辑</h2>
+      <textarea id="ta" placeholder="JSON 配置将在此显示..."></textarea>
+      <div class="button-save-group">
+        <button id="btnSave">💾 保存配置</button>
+      </div>
+      <p class="info-text">✓ 编辑 JSON 配置后点击保存按钮以应用更改</p>
+    </div>
   </div>
 
   <script src="options.js"></script>
