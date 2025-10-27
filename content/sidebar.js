@@ -1,6 +1,8 @@
-// Minimal content script for Sidebar Search
+// 侧边栏搜索（Sidebar Search）的最小内容脚本
 
+// 扩展内置配置文件地址
 const DATA_URL = chrome.runtime.getURL('data.json');
+// 常见的搜索参数键名（优先级按顺序）
 const SEARCH_PARAM_KEYS = [
     'q',
     'keyword',
@@ -13,9 +15,10 @@ const SEARCH_PARAM_KEYS = [
     's',
     'exxshu'
 ];
+// URL 模板推断缓存，避免重复计算
 const inferenceCache = new Map();
 
-// Load configuration from storage or fallback to bundled data.json
+// 从本地存储读取配置；若无则回退到扩展包内的 data.json，并写回缓存
 async function loadConfig() {
     const storage = await chrome.storage.local.get(['sidebarConfig']);
 
@@ -25,7 +28,7 @@ async function loadConfig() {
             const res = await fetch(DATA_URL);
             raw = await res.json();
 
-            // normalize config
+            // 归一化配置结构：将不同字段名映射为统一的 name / urlTemplate
             raw.listData = raw.listData.map(g => ({
                 name: g.name || g.title || '',
                 items: (g.items || g.list || []).map(it => ({
@@ -45,10 +48,11 @@ async function loadConfig() {
 }
 
 function inferFromTemplate(template) {
+    // 基于 URL 模板推断主机、协议和路径前缀等信息
     if (!template) return null;
     const token = 'XKEYWORDX';
     let attempt = template.replace(/\{keyword\}/g, token).replace(/%s/g, token);
-    // 统一相对/协议相对链接处理
+    // 统一处理协议相对（//）与相对路径（/）
     if (attempt.startsWith('//')) attempt = location.protocol + attempt;
     if (attempt.startsWith('/')) attempt = location.origin + attempt;
     let url;
@@ -76,6 +80,7 @@ function inferFromTemplate(template) {
 }
 
 function getInference(template) {
+    // 带缓存的模板推断
     if (!template) return null;
     if (inferenceCache.has(template)) return inferenceCache.get(template);
     const inferred = inferFromTemplate(template);
@@ -86,18 +91,18 @@ function getInference(template) {
 function isLocationMatch(inferred) {
     if (!inferred) return false;
     const locHost = location.hostname;
-    // normalize common www prefix for comparison
+    // 规范化主机名：去除 www. 前缀并转小写
     const normalize = (h) => (h || '').replace(/^www\./, '').toLowerCase();
     const locNorm = normalize(locHost);
     const infNorm = normalize(inferred.host);
-    // strict host match (ignoring leading www.)
+    // 主机严格匹配（忽略开头的 www.）
     if (locNorm !== infNorm) return false;
-    // if inferred has a pathPrefix other than '/', require location.pathname to match segment-wise
+    // 当推断的 pathPrefix 不是根路径时，要求 pathname 在段上匹配
     try {
         const locPath = location.pathname || '/';
         const infPath = inferred.pathPrefix || '/';
         if (infPath && infPath !== '/') {
-            // exact segment match: locPath === infPath OR locPath starts with infPath + '/'
+            // 精确分段匹配：相等或以 infPath + '/' 为前缀
             if (locPath === infPath) return true;
             if (locPath.startsWith(infPath + '/')) return true;
             return false;
@@ -109,17 +114,17 @@ function isLocationMatch(inferred) {
 }
 
 function createSidebar(groups, setting) {
-    // guard: only create once
+    // 防重：全局仅创建一次根容器
     if (document.getElementById('sidebar-search-root')) return;
 
     const root = document.createElement('div');
     root.id = 'sidebar-search-root';
     root.className = 'ss-root ss-collapsed';
 
-    // merged panel + edge element
+    // 面板容器（用于悬浮/点击展开）
     const panel = document.createElement('div');
     panel.className = 'ss-panel';
-    panel.tabIndex = 0; // make focusable for keyboard
+    panel.tabIndex = 0; // 允许通过键盘聚焦
     panel.title = 'Sidebar Search';
 
     const list = document.createElement('div');
@@ -138,19 +143,19 @@ function createSidebar(groups, setting) {
             it.className = 'ss-item';
             const inferred = getInference(item.urlTemplate);
 
-            // 图标
+            // 图标（通过 favicon 服务推断）
             const img = document.createElement('img');
             const faviconUrl = inferred ? `https://favicon.im/${inferred.host}` : '';
             if (faviconUrl) img.src = faviconUrl;
             img.alt = '';
             it.appendChild(img);
 
-            // 名称
+            // 名称文本
             const span = document.createElement('div');
             span.textContent = item.name;
             it.appendChild(span);
 
-            // 数据集：模板与推断缓存
+            // 数据属性：保留模板与推断结果（字符串化缓存）
             it.dataset.urlTemplate = item.urlTemplate;
             if (inferred) it.dataset._inf = JSON.stringify(inferred);
 
@@ -166,16 +171,16 @@ function createSidebar(groups, setting) {
     function expand() { root.classList.remove('ss-collapsed'); root.classList.add('ss-expanded'); }
     function collapse() { root.classList.remove('ss-expanded'); root.classList.add('ss-collapsed'); }
     
-    // initial collapsed
+    // 初始折叠
     collapse();
-    // open on hover, click or focus for better reliability across sites
+    // 悬浮/点击/聚焦触发展开，提高在不同站点的可用性
     panel.addEventListener('mouseenter', expand);
     panel.addEventListener('click', () => root.classList.toggle('ss-expanded'));
     panel.addEventListener('focus', expand);
-    // close when leaving panel area
+    // 鼠标离开根容器时收起
     root.addEventListener('mouseleave', collapse);
 
-    // update active states based on current location
+    // 根据当前页面位置更新各项的激活状态
     function updateActiveStates() {
         const items = root.querySelectorAll('.ss-item');
         items.forEach(el => {
@@ -198,7 +203,7 @@ function createSidebar(groups, setting) {
         });
     }
 
-    // 事件委托处理 item 点击
+    // 事件委托处理 item 点击，避免为每个项单独绑定监听
     list.addEventListener('click', (e) => {
         const itemEl = e.target.closest('.ss-item');
         if (!itemEl) return;
@@ -206,15 +211,16 @@ function createSidebar(groups, setting) {
         onClickEngine(tpl);
     });
 
-    // initial update
+    // 首次更新激活状态
     updateActiveStates();
 }
 
-// 获取当前搜索关键词
+// 安全解码工具：将 + 视为空格并尝试解码 URI 组件
 function safeDecode(v) {
     try { return decodeURIComponent(v.replace(/\+/g, ' ')); } catch (e) { return v.replace(/\+/g, ' '); }
 }
 
+// 解析 query string，按 SEARCH_PARAM_KEYS 顺序返回第一个匹配值
 function parseParams(source) {
     if (!source) return null;
     const params = new URLSearchParams(source);
@@ -225,6 +231,7 @@ function parseParams(source) {
     return null;
 }
 
+// 提取当前页面中的搜索关键词：依次从 URL 查询参数、哈希参数、以及常见文本输入框中推断
 function extractKeyword() {
     const direct = parseParams(location.search.slice(1));
     if (direct) return direct;
@@ -256,7 +263,7 @@ function onClickEngine(template) {
     const keyword = extractKeyword();
     const encoded = keyword ? encodeURIComponent(keyword) : '';
     const url = template.replace(/\{keyword\}/g, encoded).replace(/%s/g, encoded);
-    // navigate: default replace current page
+    // 导航：默认在当前页跳转，失败则尝试新开标签页
     try {
         window.location.assign(url);
     } catch (e) {
@@ -265,15 +272,15 @@ function onClickEngine(template) {
 }
 
 (async function () {
-    // Init
+    // 初始化
     const cfg = await loadConfig();
-    // Quick check: see if current location matches any inferred host
+    // 快速判断：当前页面是否匹配任一引擎主机与路径前缀
     const matchedAny = cfg.groups.some(g => g.items.some(it => {
         const inf = getInference(it.urlTemplate);
         return inf && isLocationMatch(inf);
     }));
     if (!matchedAny) {
-        // Nothing to show on this page
+        // 当前页面没有可关联的引擎，直接返回
         return;
     }
     createSidebar(cfg.groups, cfg.setting);
