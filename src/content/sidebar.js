@@ -41,11 +41,9 @@
     // normalize groups: items vs list
     const groups = listData.map(g => ({
       name: g.name || g.title || '',
-      icon: g.icon || '',
       items: (g.items || g.list || []).map(it => ({
         name: it.name || it.title || 'unnamed',
-        urlTemplate: it.urlTemplate || it.engine || it.url || '',
-        icon: it.icon || it.favicon || ''
+        urlTemplate: it.urlTemplate || it.engine || it.url || ''
       }))
     }));
     return { setting, groups };
@@ -185,9 +183,9 @@
         const it = document.createElement('div');
         it.className = 'ss-item';
         const img = document.createElement('img');
-        // try to use favicon service if no icon
+        // fetch favicon via favicon.im based on inferred host
         const host = getInference(item.urlTemplate);
-        const faviconUrl = item.icon || (host ? `https://favicon.im/${host.host}` : '');
+        const faviconUrl = host ? `https://favicon.im/${host.host}` : '';
         if (faviconUrl) img.src = faviconUrl;
         img.alt = '';
         it.appendChild(img);
