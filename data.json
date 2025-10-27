@@ -11,7 +11,7 @@
         {"name":"GitHub", "urlTemplate":"https://github.com/search?q={keyword}&type=repositories"},
         {"name":"MDN", "urlTemplate":"https://developer.mozilla.org/zh-CN/search?q={keyword}"},
         {"name":"Stack Overflow", "urlTemplate":"https://stackoverflow.com/search?q={keyword}"},
-        {"name":"掘金", "urlTemplate":"https://juejin.im/search?query={keyword}&type=all"}
+        {"name":"掘金", "urlTemplate":"https://juejin.cn/search?query={keyword}&type=all"}
       ]
     },
     {

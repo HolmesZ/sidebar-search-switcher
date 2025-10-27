@@ -5,6 +5,9 @@ const DATA_URL = chrome.runtime.getURL('data.json');
 // 常见的搜索参数键名（优先级按顺序）
 const SEARCH_PARAM_KEYS = [
     'q',
+    'query',
+    'queryText',
+    'AllField',
     'keyword',
     'key',
     'searchKeyWord',
