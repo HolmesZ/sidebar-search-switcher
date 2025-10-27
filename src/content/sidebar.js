@@ -1,6 +1,19 @@
 // Minimal content script for Sidebar Search
 (async function () {
   const DATA_URL = chrome.runtime.getURL('data.json');
+  const SEARCH_PARAM_KEYS = [
+    'q',
+    'keyword',
+    'key',
+    'searchKeyWord',
+    'kw',
+    'wd',
+    'text',
+    'w',
+    's',
+    'exxshu'
+  ];
+  const inferenceCache = new Map();
 
   // Helper: fetch and normalize data.json (support old keys)
   async function loadConfig() {
@@ -56,7 +69,7 @@
       const host = url.hostname;
       const port = url.port ? ':' + url.port : '';
       const rawPath = url.pathname || '/';
-      const pathPrefix = rawPath === '/' ? '/' : rawPath.replace(/\/+/, '/').replace(/\/$/, '');
+      const pathPrefix = rawPath === '/' ? '/' : rawPath.replace(/\/+/g, '/').replace(/\/$/, '');
       const strict = `${protocol}//${host}${port}${pathPrefix}*`;
       const parts = host.split('.');
       const root = parts.length > 2 ? parts.slice(-2).join('.') : host;
@@ -65,6 +78,14 @@
     } catch (e) {
       return null;
     }
+  }
+
+  function getInference(template) {
+    if (!template) return null;
+    if (inferenceCache.has(template)) return inferenceCache.get(template);
+    const inferred = inferFromTemplate(template);
+    inferenceCache.set(template, inferred);
+    return inferred;
   }
 
   function isLocationMatch(inferred) {
@@ -101,9 +122,9 @@
     root.className = 'ss-root ss-collapsed';
 
     const style = document.createElement('style');
-    style.innerText = `
+    style.textContent = `
       /* theme variables */
-      :root{
+      #sidebar-search-root{
         --ss-bg: #ffffff;
         --ss-text: #111827;
         --ss-edge-start: rgba(0,0,0,0.18);
@@ -111,12 +132,13 @@
         --ss-panel-shadow: 2px 0 8px rgba(0,0,0,0.18);
         --ss-item-hover: #f2f2f2;
         --ss-item-active: #e6f0ff;
+        --ss-edge-width: 10px;
       }
       /* hide scrollbars but keep scrollable content */
       .ss-panel::-webkit-scrollbar{width:0;height:0}
       .ss-panel{scrollbar-width:none;-ms-overflow-style:none}
       @media (prefers-color-scheme: dark){
-        :root{
+        #sidebar-search-root{
           --ss-bg: #0b1220;
           --ss-text: #e6eef8;
           --ss-edge-start: rgba(255,255,255,0.06);
@@ -130,7 +152,6 @@
       /* root is just a container */
       .ss-root{position:fixed;left:0;top:0;height:100vh;z-index:2147483647;pointer-events:none}
       /* merged panel acts as both visible edge and full panel */
-      :root{--ss-edge-width:10px}
       .ss-panel{position:fixed;left:0;top:0;transform:translateX(calc(-100% + var(--ss-edge-width)));width:320px;max-width:40vw;height:100vh;background:var(--ss-bg);color:var(--ss-text);box-shadow:var(--ss-panel-shadow);overflow-y:auto;overflow-x:hidden;pointer-events:auto;box-sizing:border-box;border-top-right-radius:6px;border-bottom-right-radius:6px}
       .ss-panel:focus{outline:2px solid rgba(25,118,210,0.6)}
       .ss-root.ss-expanded .ss-panel{transform:translateX(0);transition:transform .18s ease}
@@ -165,7 +186,7 @@
         it.className = 'ss-item';
         const img = document.createElement('img');
         // try to use favicon service if no icon
-        const host = inferFromTemplate(item.urlTemplate);
+        const host = getInference(item.urlTemplate);
         const faviconUrl = item.icon || (host ? `https://favicon.im/${host.host}` : '');
         if (faviconUrl) img.src = faviconUrl;
         img.alt = '';
@@ -177,7 +198,7 @@
         it.dataset.urlTemplate = item.urlTemplate;
         it.addEventListener('click', () => onClickEngine(item.urlTemplate));
         // mark element with inferred info for later active checks
-        const inferred = inferFromTemplate(item.urlTemplate);
+        const inferred = host;
         if (inferred) {
           it.dataset._inf_host = inferred.host;
           it.dataset._inf_protocol = inferred.protocol;
@@ -210,7 +231,7 @@
       const items = root.querySelectorAll('.ss-item');
       items.forEach(el => {
         const tpl = el.dataset.urlTemplate;
-        const inf = inferFromTemplate(tpl);
+        const inf = getInference(tpl);
         if (inf && isLocationMatch(inf)) {
           el.classList.add('active');
         } else {
@@ -241,48 +262,55 @@
   }
 
   // 获取当前搜索关键词
-  function extractKeyword() {
-    let keywordTemporary = ''
-    const params = new URLSearchParams(
-      document.location.search.substring(1) || document.location.hash,
-    )
-    const kw =
-      params.get('exxshu') ||
-      params.get('q') ||
-      params.get('wd') ||
-      params.get('text') ||
-      params.get('w') ||
-      params.get('s') ||
-      params.get('key') ||
-      params.get('searchKeyWord') ||
-      params.get('keyword') ||
-      params.get('kw')
-
-    if (kw) {
-      keywordTemporary = kw
-    } else {
-      const dom = document.getElementsByTagName('input')
-      for (let i = 0; i < dom.length; i++) {
-        if (
-          dom[i].clientWidth > 80 &&
-          dom[i].clientHeight > 0 &&
-          dom[i].value &&
-          decodeURI(document.location.href).includes(dom[i].value)
-        )
-          keywordTemporary = dom[i].value
+  function parseParams(source) {
+    if (!source) return null;
+    const params = new URLSearchParams(source);
+    for (const key of SEARCH_PARAM_KEYS) {
+      const value = params.get(key);
+      if (value) {
+        try {
+          return decodeURIComponent(value.replace(/\+/g, ' '));
+        } catch (e) {
+          return value.replace(/\+/g, ' ');
+        }
       }
     }
+    return null;
+  }
 
-    return keywordTemporary
+  function extractKeyword() {
+    const direct = parseParams(location.search.slice(1));
+    if (direct) return direct;
+    const rawHash = location.hash.startsWith('#') ? location.hash.slice(1) : location.hash;
+    const hashQuery = rawHash.includes('?') ? rawHash.split('?')[1] : rawHash;
+    const hashValue = parseParams(hashQuery);
+    if (hashValue) return hashValue;
+
+    const inputs = document.getElementsByTagName('input');
+    let decodedHref = location.href;
+    try { decodedHref = decodeURIComponent(location.href); } catch (e) { /* noop */ }
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+      if (
+        input.clientWidth > 80 &&
+        input.clientHeight > 0 &&
+        input.value &&
+        decodedHref.includes(input.value)
+      ) {
+        return input.value;
+      }
+    }
+    return '';
   }
 
   function onClickEngine(template) {
+    if (!template) return;
     const keyword = extractKeyword();
-    const encoded = encodeURIComponent(keyword || '');
-    let url = template.replace(/\{keyword\}/g, encoded).replace(/%s/g, encoded);
+    const encoded = keyword ? encodeURIComponent(keyword) : '';
+    const url = template.replace(/\{keyword\}/g, encoded).replace(/%s/g, encoded);
     // navigate: default replace current page
     try {
-      window.location.href = url;
+      window.location.assign(url);
     } catch (e) {
       window.open(url, '_blank');
     }
@@ -292,7 +320,7 @@
   const cfg = await loadConfig();
   // quick check: see if current location matches any inferred host
   const matchedAny = cfg.groups.some(g => g.items.some(it => {
-    const inf = inferFromTemplate(it.urlTemplate);
+    const inf = getInference(it.urlTemplate);
     return inf && isLocationMatch(inf);
   }));
   if (!matchedAny) {
