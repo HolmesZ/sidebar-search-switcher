@@ -1,0 +1,14 @@
+{
+    "extensionName": {
+        "message": "侧边栏搜索切换工具",
+        "description": "扩展名称"
+    },
+    "extensionDescription": {
+        "message": "在搜索页面左侧显示可展开的搜索引擎边栏，支持自定义引擎与导入/导出配置。",
+        "description": "扩展描述"
+    },
+    "actionTitle": {
+        "message": "侧边栏搜索切换工具",
+        "description": "浏览器工具栏按钮标题"
+    }
+}

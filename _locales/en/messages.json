@@ -1,0 +1,14 @@
+{
+    "extensionName": {
+        "message": "Sidebar Search Switcher",
+        "description": "Extension name"
+    },
+    "extensionDescription": {
+        "message": "Show an expandable search engine sidebar on supported sites. Customize engines and import/export your config.",
+        "description": "Extension description"
+    },
+    "actionTitle": {
+        "message": "Sidebar Search Switcher",
+        "description": "Browser action button title"
+    }
+}
