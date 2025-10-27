@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Sidebar Search",
+  "name": "Sidebar Search Switcher | 侧边栏搜索切换工具",
   "version": "0.1.0",
   "description": "在搜索引擎页面左侧显示可展开的搜索引擎边栏，支持自定义引擎与导入/导出配置。",
   "permissions": [
@@ -9,7 +9,7 @@
     "scripting"
   ],
   "action": {
-    "default_title": "Sidebar Search",
+    "default_title": "Sidebar Search Switcher | 侧边栏搜索切换工具",
     "default_popup": "popup/popup.html"
   },
   "options_ui": {

@@ -1,6 +1,6 @@
-# Sidebar Search Switcher 侧边栏搜索切换
+# Sidebar Search Switcher | 侧边栏搜索切换工具
 
-在浏览器中，为搜索网站左侧添加一个侧边搜索引擎切换面板。不使用第三方框架实现。
+在搜索引擎页面左侧显示可展开的搜索引擎边栏，支持自定义引擎与导入/导出配置。不使用第三方框架实现。
 
 ![example.png](example.png)
 
