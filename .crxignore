@@ -40,3 +40,4 @@ docs/
 
 # 忽略 crxignore 本身以防被误包含
 .crxignore
+.gitignore
