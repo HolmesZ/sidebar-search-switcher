@@ -115,49 +115,6 @@ function createSidebar(groups, setting) {
     root.id = 'sidebar-search-root';
     root.className = 'ss-root ss-collapsed';
 
-    const style = document.createElement('style');
-    style.textContent = `
-    /* theme variables */
-    #sidebar-search-root{
-      --ss-bg: #ffffff;
-      --ss-text: #111827;
-      --ss-edge-start: rgba(0,0,0,0.18);
-      --ss-edge-end: rgba(0,0,0,0.06);
-      --ss-panel-shadow: 2px 0 8px rgba(0,0,0,0.18);
-      --ss-item-hover: #f2f2f2;
-      --ss-item-active: #e6f0ff;
-      --ss-edge-width: 10px;
-    }
-    /* hide scrollbars but keep scrollable content */
-    .ss-panel::-webkit-scrollbar{width:0;height:0}
-    .ss-panel{scrollbar-width:none;-ms-overflow-style:none}
-    @media (prefers-color-scheme: dark){
-      #sidebar-search-root{
-        --ss-bg: #0b1220;
-        --ss-text: #e6eef8;
-        --ss-edge-start: rgba(255,255,255,0.06);
-        --ss-edge-end: rgba(255,255,255,0.02);
-        --ss-panel-shadow: 2px 0 12px rgba(0,0,0,0.6);
-        --ss-item-hover: rgba(255,255,255,0.04);
-        --ss-item-active: rgba(70,130,180,0.18);
-      }
-    }
-
-    /* root is just a container */
-    .ss-root{position:fixed;left:0;top:0;height:100vh;z-index:2147483647;pointer-events:none}
-    /* merged panel acts as both visible edge and full panel */
-    .ss-panel{position:fixed;left:0;top:0;transform:translateX(calc(-100% + var(--ss-edge-width)));width:320px;max-width:40vw;height:100vh;background:var(--ss-bg);color:var(--ss-text);box-shadow:var(--ss-panel-shadow);overflow-y:auto;overflow-x:hidden;pointer-events:auto;box-sizing:border-box;border-top-right-radius:6px;border-bottom-right-radius:6px}
-    .ss-panel:focus{outline:2px solid rgba(25,118,210,0.6)}
-    .ss-root.ss-expanded .ss-panel{transform:translateX(0);transition:transform .18s ease}
-    .ss-root.ss-collapsed .ss-panel{transform:translateX(calc(-100% + var(--ss-edge-width)));transition:transform .18s ease}
-    .ss-list{padding:8px 0 8px 8px;font-family:Segoe UI, Arial, Helvetica, sans-serif}
-    .ss-group{margin-bottom:8px}
-    .ss-item{display:flex;align-items:center;padding:6px;border-radius:4px;cursor:pointer;color:var(--ss-text)}
-    .ss-item:hover{background:var(--ss-item-hover)}
-    .ss-item.active{background:var(--ss-item-active);border-right:10px solid #1976d2;font-weight:600}
-    .ss-item img{width:18px;height:18px;margin-right:8px}
-  `;
-
     // merged panel + edge element
     const panel = document.createElement('div');
     panel.className = 'ss-panel';
@@ -203,12 +160,12 @@ function createSidebar(groups, setting) {
     });
 
     panel.appendChild(list);
-    root.appendChild(style);
     root.appendChild(panel);
     document.body.appendChild(root);
 
     function expand() { root.classList.remove('ss-collapsed'); root.classList.add('ss-expanded'); }
     function collapse() { root.classList.remove('ss-expanded'); root.classList.add('ss-collapsed'); }
+    
     // initial collapsed
     collapse();
     // open on hover, click or focus for better reliability across sites

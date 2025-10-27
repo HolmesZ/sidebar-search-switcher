@@ -24,6 +24,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
+      "css": ["src/content/sidebar.css"],
       "js": ["src/content/sidebar.js"],
       "run_at": "document_idle"
     }
