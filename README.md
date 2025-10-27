@@ -115,5 +115,6 @@ README.md         # 项目说明
 
 ## 致谢
 
-- favicon 提供：`favicon.im`
+- favicon 提供方：`favicon.im`
+- 启发：https://github.com/xiaoshuapp/explorer-xiaoshu
 - 以及所有为搜索效率折腾不止的你 🙂
