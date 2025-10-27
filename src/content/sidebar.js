@@ -26,7 +26,7 @@ async function loadConfig() {
             const res = await fetch(DATA_URL);
             raw = await res.json();
 
-            // Normalize config
+            // normalize config
             raw.listData = raw.listData.map(g => ({
                 name: g.name || g.title || '',
                 items: (g.items || g.list || []).map(it => ({
@@ -233,23 +233,6 @@ function createSidebar(groups, setting) {
             }
         });
     }
-
-    // listen for SPA navigation: create a custom event when pushState/replaceState called
-    (function () {
-        const _wr = (type) => {
-            const orig = history[type];
-            return function () {
-                const rv = orig.apply(this, arguments);
-                const ev = new Event('locationchange');
-                window.dispatchEvent(ev);
-                return rv;
-            };
-        };
-        history.pushState = _wr('pushState');
-        history.replaceState = _wr('replaceState');
-        window.addEventListener('popstate', () => window.dispatchEvent(new Event('locationchange')));
-        window.addEventListener('locationchange', updateActiveStates);
-    })();
 
     // initial update
     updateActiveStates();
