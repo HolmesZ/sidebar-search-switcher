@@ -10,10 +10,10 @@
   ],
   "action": {
     "default_title": "Sidebar Search",
-    "default_popup": "src/popup/popup.html"
+    "default_popup": "popup/popup.html"
   },
   "options_ui": {
-    "page": "src/options/options.html",
+    "page": "options/options.html",
     "open_in_tab": true
   },
   "icons": {
@@ -24,8 +24,8 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "css": ["src/content/sidebar.css"],
-      "js": ["src/content/sidebar.js"],
+      "css": ["content/sidebar.css"],
+      "js": ["content/sidebar.js"],
       "run_at": "document_idle"
     }
   ],
