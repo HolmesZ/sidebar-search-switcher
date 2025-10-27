@@ -15,7 +15,6 @@ const SEARCH_PARAM_KEYS = [
 ];
 const inferenceCache = new Map();
 
-
 // Load configuration from storage or fallback to bundled data.json
 async function loadConfig() {
     const storage = await chrome.storage.local.get(['sidebarConfig']);
@@ -49,26 +48,28 @@ function inferFromTemplate(template) {
     if (!template) return null;
     const token = 'XKEYWORDX';
     let attempt = template.replace(/\{keyword\}/g, token).replace(/%s/g, token);
-    // handle protocol-relative URLs like //example.com/path
+    // 统一相对/协议相对链接处理
     if (attempt.startsWith('//')) attempt = location.protocol + attempt;
-    // try parse; if fails and attempt starts with '/', assume relative to current host
-    let url = null;
-    try { url = new URL(attempt); } catch (e) { url = null; }
-    if (!url && attempt.startsWith('/')) {
-        try { url = new URL(location.protocol + '//' + location.hostname + attempt); } catch (e) { url = null; }
-    }
-    if (!url) return null;
+    if (attempt.startsWith('/')) attempt = location.origin + attempt;
+    let url;
+    try { url = new URL(attempt); } catch (e) { return null; }
     try {
         const protocol = url.protocol || 'https:';
         const host = url.hostname;
         const port = url.port ? ':' + url.port : '';
         const rawPath = url.pathname || '/';
         const pathPrefix = rawPath === '/' ? '/' : rawPath.replace(/\/+/g, '/').replace(/\/$/, '');
-        const strict = `${protocol}//${host}${port}${pathPrefix}*`;
         const parts = host.split('.');
         const root = parts.length > 2 ? parts.slice(-2).join('.') : host;
-        const loose = `${protocol}//*.${root}/*`;
-        return { protocol, host, port, pathPrefix, strict, loose, root };
+        return {
+            protocol,
+            host,
+            port,
+            pathPrefix,
+            strict: `${protocol}//${host}${port}${pathPrefix}*`,
+            loose: `${protocol}//*.${root}/*`,
+            root
+        };
     } catch (e) {
         return null;
     }
@@ -135,25 +136,24 @@ function createSidebar(groups, setting) {
         group.items.forEach(item => {
             const it = document.createElement('div');
             it.className = 'ss-item';
+            const inferred = getInference(item.urlTemplate);
+
+            // 图标
             const img = document.createElement('img');
-            // fetch favicon via favicon.im based on inferred host
-            const host = getInference(item.urlTemplate);
-            const faviconUrl = host ? `https://favicon.im/${host.host}` : '';
+            const faviconUrl = inferred ? `https://favicon.im/${inferred.host}` : '';
             if (faviconUrl) img.src = faviconUrl;
             img.alt = '';
             it.appendChild(img);
+
+            // 名称
             const span = document.createElement('div');
             span.textContent = item.name;
             it.appendChild(span);
-            // store template
+
+            // 数据集：模板与推断缓存
             it.dataset.urlTemplate = item.urlTemplate;
-            it.addEventListener('click', () => onClickEngine(item.urlTemplate));
-            // mark element with inferred info for later active checks
-            const inferred = host;
-            if (inferred) {
-                it.dataset._inf_host = inferred.host;
-                it.dataset._inf_protocol = inferred.protocol;
-            }
+            if (inferred) it.dataset._inf = JSON.stringify(inferred);
+
             g.appendChild(it);
         });
         list.appendChild(g);
@@ -174,15 +174,22 @@ function createSidebar(groups, setting) {
     panel.addEventListener('focus', expand);
     // close when leaving panel area
     root.addEventListener('mouseleave', collapse);
-    // close on Escape
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') collapse(); });
 
     // update active states based on current location
     function updateActiveStates() {
         const items = root.querySelectorAll('.ss-item');
         items.forEach(el => {
-            const tpl = el.dataset.urlTemplate;
-            const inf = getInference(tpl);
+            // 优先使用 dataset 缓存，缺失时再推断
+            let inf = null;
+            const cached = el.dataset._inf;
+            if (cached) {
+                try { inf = JSON.parse(cached); } catch (e) { inf = null; }
+            }
+            if (!inf) {
+                const tpl = el.dataset.urlTemplate;
+                inf = getInference(tpl);
+                if (inf) el.dataset._inf = JSON.stringify(inf);
+            }
             if (inf && isLocationMatch(inf)) {
                 el.classList.add('active');
             } else {
@@ -191,23 +198,29 @@ function createSidebar(groups, setting) {
         });
     }
 
+    // 事件委托处理 item 点击
+    list.addEventListener('click', (e) => {
+        const itemEl = e.target.closest('.ss-item');
+        if (!itemEl) return;
+        const tpl = itemEl.dataset.urlTemplate;
+        onClickEngine(tpl);
+    });
+
     // initial update
     updateActiveStates();
 }
 
 // 获取当前搜索关键词
+function safeDecode(v) {
+    try { return decodeURIComponent(v.replace(/\+/g, ' ')); } catch (e) { return v.replace(/\+/g, ' '); }
+}
+
 function parseParams(source) {
     if (!source) return null;
     const params = new URLSearchParams(source);
     for (const key of SEARCH_PARAM_KEYS) {
         const value = params.get(key);
-        if (value) {
-            try {
-                return decodeURIComponent(value.replace(/\+/g, ' '));
-            } catch (e) {
-                return value.replace(/\+/g, ' ');
-            }
-        }
+        if (value) return safeDecode(value);
     }
     return null;
 }
@@ -220,9 +233,10 @@ function extractKeyword() {
     const hashValue = parseParams(hashQuery);
     if (hashValue) return hashValue;
 
-    const inputs = document.getElementsByTagName('input');
+    // 仅查询常见文本/搜索输入；保持原有可见性与包含性判断
     let decodedHref = location.href;
     try { decodedHref = decodeURIComponent(location.href); } catch (e) { /* noop */ }
+    const inputs = document.querySelectorAll('input[type="search"], input[type="text"], input:not([type])');
     for (let i = 0; i < inputs.length; i++) {
         const input = inputs[i];
         if (
