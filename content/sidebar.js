@@ -100,7 +100,7 @@ function createSidebar(groups, setting) {
             // 图标（通过 favicon 服务推断）
             const img = document.createElement('img');
             img.src = `https://favicon.im/${item.urlTemplate}`;
-            img.alt = item.name || '';
+            img.alt = '';
             it.appendChild(img);
 
             // 名称文本
