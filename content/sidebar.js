@@ -20,33 +20,48 @@ const SEARCH_PARAM_KEYS = [
 ];
 let matchItemName = '';
 
+// 规范化配置格式,并解决 Firefox XrayWrapper 问题
+function normalizeConfig(raw) {
+    if (!raw || typeof raw !== 'object') {
+        return { setting: {}, groups: [] };
+    }
+
+    const setting = raw.setting && typeof raw.setting === 'object' ? { ...raw.setting } : {};
+    const candidates = Array.isArray(raw.listData) ? raw.listData : [];
+
+    const groups = candidates.map(group => {
+        const itemsSource = Array.isArray(group.items) ? group.items : [];
+
+        return {
+            name: group.name || '',
+            items: itemsSource.map(item => ({
+                name: item.name || 'unnamed',
+                urlTemplate: item.urlTemplate || ''
+            }))
+        };
+    });
+
+    return { setting, groups };
+}
+
 // 从本地存储读取配置；若无则回退到扩展包内的 data.json，并写回缓存
 async function loadConfig() {
     const storage = await chrome.storage.local.get(['sidebarConfig']);
 
-    let raw = storage && (storage.sidebarConfig);
-    if (!raw) {
+    let stored = storage && storage.sidebarConfig;
+    if (!stored) {
         try {
             const res = await fetch(DATA_URL);
-            raw = await res.json();
-
-            // 归一化配置结构：将不同字段名映射为统一的 name / urlTemplate
-            raw.listData = raw.listData.map(g => ({
-                name: g.name || g.title || '',
-                items: (g.items || g.list || []).map(it => ({
-                    name: it.name || it.title || 'unnamed',
-                    urlTemplate: it.urlTemplate || it.engine || it.url || ''
-                }))
-            }));
-
-            chrome.storage.local.set({ sidebarConfig: raw });
+            const normalized = normalizeConfig(await res.json());
+            chrome.storage.local.set({ sidebarConfig: normalized });
+            return normalized;
         } catch (e) {
             console.error('Failed to load data.json', e);
-            raw = { setting: {}, listData: [] };
+            return { setting: {}, groups: [] };
         }
     }
 
-    return { setting: raw.setting || {}, groups: raw.listData || [] };
+    return normalizeConfig(stored);
 }
 
 function matchUrl(urlTemplate) {
