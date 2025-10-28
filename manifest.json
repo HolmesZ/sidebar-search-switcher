@@ -35,5 +35,20 @@
       "resources": ["data.json"],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "sidebar-search-switcher@holmesz",
+      "strict_min_version": "91.0",
+      "data_collection_permissions": {
+          "required": [
+            "browsingActivity",
+            "websiteContent",
+            "websiteActivity",
+            "searchTerms"
+          ],
+          "optional": []
+         }
+    }
+  }
 }
