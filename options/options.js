@@ -30,22 +30,7 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', upd
 // 初始化主题指示器
 updateThemeIndicator();
 
-async function loadDefault() {
-    try {
-        const url = chrome.runtime.getURL('data.json');
-        const res = await fetch(url);
-        const json = await res.text();
-        ta.value = json;
-        showAlert('✓ 已恢复默认配置', 'success');
-    } catch (e) {
-        ta.value = '{\n  "error": "failed to load data.json"\n}';
-        showAlert('✗ 加载默认配置失败', 'error');
-    }
-}
-
-btnLoad.addEventListener('click', loadDefault);
-
-btnSave.addEventListener('click', () => {
+function saveConfig() {
     try {
         const parsed = JSON.parse(ta.value);
         // 以统一键名 'sidebarConfig' 保存配置
@@ -55,7 +40,25 @@ btnSave.addEventListener('click', () => {
     } catch (e) {
         showAlert('✗ JSON 格式无效：' + e.message, 'error');
     }
-});
+};
+
+async function loadDefault() {
+    try {
+        const url = chrome.runtime.getURL('data.json');
+        const res = await fetch(url);
+        const json = await res.text();
+        ta.value = json;
+        saveConfig();
+        showAlert('✓ 已恢复默认配置', 'success');
+    } catch (e) {
+        ta.value = '{\n  "error": "failed to load data.json"\n}';
+        showAlert('✗ 加载默认配置失败', 'error');
+    }
+}
+
+btnLoad.addEventListener('click', loadDefault);
+
+btnSave.addEventListener('click', saveConfig);
 
 btnExport.addEventListener('click', async () => {
     // 导出优先顺序：本地存储 sidebarConfig → 兼容旧键 data → 扩展内置 data.json
@@ -102,6 +105,7 @@ fileInput.addEventListener('change', () => {
                 showAlert('✓ 配置已导入并保存', 'success');
                 fileInput.value = ''; // 重置文件选择框，便于再次选择同一文件
             });
+            saveConfig();
         } catch (err) {
             showAlert('✗ JSON 格式无效', 'error');
         }
