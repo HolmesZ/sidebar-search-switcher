@@ -18,8 +18,7 @@ const SEARCH_PARAM_KEYS = [
     's',
     'exxshu'
 ];
-// URL 模板推断缓存，避免重复计算
-const inferenceCache = new Map();
+let matchItemName = '';
 
 // 从本地存储读取配置；若无则回退到扩展包内的 data.json，并写回缓存
 async function loadConfig() {
@@ -50,70 +49,8 @@ async function loadConfig() {
     return { setting: raw.setting || {}, groups: raw.listData || [] };
 }
 
-function inferFromTemplate(template) {
-    // 基于 URL 模板推断主机、协议和路径前缀等信息
-    if (!template) return null;
-    const token = 'XKEYWORDX';
-    let attempt = template.replace(/\{keyword\}/g, token).replace(/%s/g, token);
-    // 统一处理协议相对（//）与相对路径（/）
-    if (attempt.startsWith('//')) attempt = location.protocol + attempt;
-    if (attempt.startsWith('/')) attempt = location.origin + attempt;
-    let url;
-    try { url = new URL(attempt); } catch (e) { return null; }
-    try {
-        const protocol = url.protocol || 'https:';
-        const host = url.hostname;
-        const port = url.port ? ':' + url.port : '';
-        const rawPath = url.pathname || '/';
-        const pathPrefix = rawPath === '/' ? '/' : rawPath.replace(/\/+/g, '/').replace(/\/$/, '');
-        const parts = host.split('.');
-        const root = parts.length > 2 ? parts.slice(-2).join('.') : host;
-        return {
-            protocol,
-            host,
-            port,
-            pathPrefix,
-            strict: `${protocol}//${host}${port}${pathPrefix}*`,
-            loose: `${protocol}//*.${root}/*`,
-            root
-        };
-    } catch (e) {
-        return null;
-    }
-}
-
-function getInference(template) {
-    // 带缓存的模板推断
-    if (!template) return null;
-    if (inferenceCache.has(template)) return inferenceCache.get(template);
-    const inferred = inferFromTemplate(template);
-    inferenceCache.set(template, inferred);
-    return inferred;
-}
-
-function isLocationMatch(inferred) {
-    if (!inferred) return false;
-    const locHost = location.hostname;
-    // 规范化主机名：去除 www. 前缀并转小写
-    const normalize = (h) => (h || '').replace(/^www\./, '').toLowerCase();
-    const locNorm = normalize(locHost);
-    const infNorm = normalize(inferred.host);
-    // 主机严格匹配（忽略开头的 www.）
-    if (locNorm !== infNorm) return false;
-    // 当推断的 pathPrefix 不是根路径时，要求 pathname 在段上匹配
-    try {
-        const locPath = location.pathname || '/';
-        const infPath = inferred.pathPrefix || '/';
-        if (infPath && infPath !== '/') {
-            // 精确分段匹配：相等或以 infPath + '/' 为前缀
-            if (locPath === infPath) return true;
-            if (locPath.startsWith(infPath + '/')) return true;
-            return false;
-        }
-        return true;
-    } catch (e) {
-        return true;
-    }
+function matchUrl(urlTemplate) {
+    return location.href.startsWith(urlTemplate.split('?')[0]);
 }
 
 function createSidebar(groups, setting) {
@@ -144,13 +81,11 @@ function createSidebar(groups, setting) {
         group.items.forEach(item => {
             const it = document.createElement('div');
             it.className = 'ss-item';
-            const inferred = getInference(item.urlTemplate);
 
             // 图标（通过 favicon 服务推断）
             const img = document.createElement('img');
-            const faviconUrl = inferred ? `https://favicon.im/${inferred.host}` : '';
-            if (faviconUrl) img.src = faviconUrl;
-            img.alt = '';
+            img.src = `https://favicon.im/${item.urlTemplate}`;
+            img.alt = item.name || '';
             it.appendChild(img);
 
             // 名称文本
@@ -160,7 +95,16 @@ function createSidebar(groups, setting) {
 
             // 数据属性：保留模板与推断结果（字符串化缓存）
             it.dataset.urlTemplate = item.urlTemplate;
-            if (inferred) it.dataset._inf = JSON.stringify(inferred);
+
+            // 高亮当前匹配项
+            if (matchItemName && matchItemName === item.name || matchUrl(item.urlTemplate)) {
+                it.classList.add('active');
+            }
+
+            // 点击事件：导航至对应搜索结果
+            it.addEventListener('click', (e) => {
+                onClickEngine(item.urlTemplate);
+            });
 
             g.appendChild(it);
         });
@@ -182,40 +126,6 @@ function createSidebar(groups, setting) {
     panel.addEventListener('focus', expand);
     // 鼠标离开根容器时收起
     root.addEventListener('mouseleave', collapse);
-
-    // 根据当前页面位置更新各项的激活状态
-    function updateActiveStates() {
-        const items = root.querySelectorAll('.ss-item');
-        items.forEach(el => {
-            // 优先使用 dataset 缓存，缺失时再推断
-            let inf = null;
-            const cached = el.dataset._inf;
-            if (cached) {
-                try { inf = JSON.parse(cached); } catch (e) { inf = null; }
-            }
-            if (!inf) {
-                const tpl = el.dataset.urlTemplate;
-                inf = getInference(tpl);
-                if (inf) el.dataset._inf = JSON.stringify(inf);
-            }
-            if (inf && isLocationMatch(inf)) {
-                el.classList.add('active');
-            } else {
-                el.classList.remove('active');
-            }
-        });
-    }
-
-    // 事件委托处理 item 点击，避免为每个项单独绑定监听
-    list.addEventListener('click', (e) => {
-        const itemEl = e.target.closest('.ss-item');
-        if (!itemEl) return;
-        const tpl = itemEl.dataset.urlTemplate;
-        onClickEngine(tpl);
-    });
-
-    // 首次更新激活状态
-    updateActiveStates();
 }
 
 // 安全解码工具：将 + 视为空格并尝试解码 URI 组件
@@ -277,11 +187,15 @@ function onClickEngine(template) {
 (async function () {
     // 初始化
     const cfg = await loadConfig();
+
     // 快速判断：当前页面是否匹配任一引擎主机与路径前缀
     const matchedAny = cfg.groups.some(g => g.items.some(it => {
-        const inf = getInference(it.urlTemplate);
-        return inf && isLocationMatch(inf);
+        if (matchUrl(it.urlTemplate)) {
+            matchItemName = it.name;
+            return true;
+        }
     }));
+
     if (!matchedAny) {
         // 当前页面没有可关联的引擎，直接返回
         return;
