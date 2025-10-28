@@ -98,10 +98,14 @@ function createSidebar(groups, setting) {
             it.className = 'ss-item';
 
             // 图标（通过 favicon 服务推断）
-            const img = document.createElement('img');
-            img.src = `https://favicon.im/${item.urlTemplate}`;
-            img.alt = '';
-            it.appendChild(img);
+            if (setting.showIcon) {
+                const img = document.createElement('img');
+                img.src = `https://favicon.im/${item.urlTemplate}`;
+                img.alt = '';
+                it.appendChild(img);
+            } else {
+                it.style.paddingLeft = '1rem';
+            }
 
             // 名称文本
             const span = document.createElement('div');
@@ -118,7 +122,7 @@ function createSidebar(groups, setting) {
 
             // 点击事件：导航至对应搜索结果
             it.addEventListener('click', (e) => {
-                onClickEngine(item.urlTemplate);
+                onClickEngine(item.urlTemplate, setting.openInNewTab);
             });
 
             g.appendChild(it);
@@ -186,16 +190,16 @@ function extractKeyword() {
     return '';
 }
 
-function onClickEngine(template) {
+function onClickEngine(template, openInNewTab) {
     if (!template) return;
     const keyword = extractKeyword();
     const encoded = keyword ? encodeURIComponent(keyword) : '';
     const url = template.replace(/\{keyword\}/g, encoded).replace(/%s/g, encoded);
-    // 导航：默认在当前页跳转，失败则尝试新开标签页
-    try {
-        window.location.assign(url);
-    } catch (e) {
+    // 根据设置在当前页跳转或新开标签页
+    if (openInNewTab) {
         window.open(url, '_blank');
+    } else {
+        window.location.assign(url);
     }
 }
 
